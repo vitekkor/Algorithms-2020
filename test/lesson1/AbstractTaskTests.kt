@@ -1,6 +1,7 @@
 package lesson1
 
 import org.junit.jupiter.api.Assertions.assertArrayEquals
+import ru.spbstu.kotlin.generate.util.nextInRange
 import util.PerfResult
 import util.estimate
 import java.io.BufferedWriter
@@ -10,6 +11,51 @@ import kotlin.math.abs
 import kotlin.system.measureNanoTime
 
 abstract class AbstractTaskTests : AbstractFileTests() {
+
+    private fun generateTimes(size: Int): PerfResult<Unit> {
+        val random = Random()
+        val amPmArray = arrayOf("AM", "PM")
+        val times = mutableListOf<String>()
+        var hours = Random().nextInRange(0, 12)
+        var minutes = Random().nextInRange(0, 59)
+        var seconds = Random().nextInRange(0, 59)
+        var amPm = amPmArray[Random().nextInRange(0, 1)]
+        for (i in 1..size) {
+            val time = String.format(
+                "%02d:%02d:%02d",
+                hours,
+                minutes,
+                seconds
+            ) + " $amPm"
+            times.add(time)
+            seconds++
+            if (seconds > 59) {
+                seconds = 0
+                minutes++
+                if (minutes > 59) {
+                    minutes = 0
+                    hours++
+                    if (hours > 12) {
+                        hours = 0
+                        amPm = if (amPm == "AM") "PM" else "AM"
+                    }
+                }
+            }
+        }
+
+        fun BufferedWriter.writeTimes() {
+            for (t in times) {
+                write(t)
+                newLine()
+            }
+            close()
+        }
+
+        File("time_sorted_expected.txt").bufferedWriter().writeTimes()
+        times.shuffle(random)
+        File("time_unsorted.txt").bufferedWriter().writeTimes()
+        return PerfResult(size = times.size, data = Unit)
+    }
 
     protected fun sortTimes(sortTimes: (String, String) -> Unit) {
         try {
@@ -45,6 +91,24 @@ abstract class AbstractTaskTests : AbstractFileTests() {
         } finally {
             File("temp.txt").delete()
         }
+        fun testGeneratedTimes(size: Int): PerfResult<Unit> {
+            try {
+                val res = generateTimes(size)
+                val time = measureNanoTime { sortTimes("time_unsorted.txt", "time_sorted_actual.txt") }
+                assertFileContent("time_sorted_actual.txt", File("time_sorted_expected.txt").readLines())
+                return res.copy(time = time)
+            } finally {
+                File("time_unsorted.txt").delete()
+                File("time_sorted_expected.txt").delete()
+                File("time_sorted_actual.txt").delete()
+            }
+        }
+
+        val perf = estimate(listOf(10, 100, 1000, 10000)) {
+            testGeneratedTimes(it)
+        }
+
+        println("sortTemperatures: $perf")
     }
 
     protected fun sortAddresses(sortAddresses: (String, String) -> Unit) {
@@ -115,6 +179,18 @@ abstract class AbstractTaskTests : AbstractFileTests() {
                     121.3
                 """.trimIndent()
             )
+        } finally {
+            File("temp.txt").delete()
+        }
+        try {
+            sortTemperatures("input/temp_in2.txt", "temp.txt")
+            assertFileContent("temp.txt", File("input/temp_out2.txt").readLines())
+        } finally {
+            File("temp.txt").delete()
+        }
+        try {
+            sortTemperatures("input/temp_in3.txt", "temp.txt")
+            assertFileContent("temp.txt", File("input/temp_out3.txt").readLines())
         } finally {
             File("temp.txt").delete()
         }
@@ -277,6 +353,54 @@ abstract class AbstractTaskTests : AbstractFileTests() {
         } finally {
             File("temp.txt").delete()
         }
+        try {
+            sortSequence("input/seq_in6.txt", "temp.txt")
+            assertFileContent(
+                "temp.txt",
+                """
+                        78
+                        32
+                        91
+                        41
+                        41
+                        41
+                        41
+                        41
+                        41
+                        41
+                        41
+                        41
+                        41
+                        41
+                    """.trimIndent()
+            )
+        } finally {
+            File("temp.txt").delete()
+        }
+        try {
+            sortSequence("input/seq_in7.txt", "temp.txt")
+            assertFileContent(
+                "temp.txt",
+                """
+                        78
+                        32
+                        91
+                        41
+                        41
+                        41
+                        41
+                        41
+                        41
+                        41
+                        41
+                        41
+                        41
+                        41
+                    """.trimIndent()
+            )
+        } finally {
+            File("temp.txt").delete()
+        }
 
         fun testGeneratedSequence(totalSize: Int, answerSize: Int): PerfResult<Unit> {
             try {
@@ -323,9 +447,21 @@ abstract class AbstractTaskTests : AbstractFileTests() {
     }
 
     protected fun mergeArrays(mergeArrays: (Array<Int>, Array<Int?>) -> Unit) {
-        val result = arrayOf(null, null, null, null, null, 1, 3, 9, 13, 18, 23)
+        var result = arrayOf(null, null, null, null, null, 1, 3, 9, 13, 18, 23)
         mergeArrays(arrayOf(4, 9, 15, 20, 23), result)
         assertArrayEquals(arrayOf(1, 3, 4, 9, 9, 13, 15, 18, 20, 23, 23), result)
+
+        result = arrayOf(null, null, null, 1, 1, 1)
+        mergeArrays(arrayOf(1, 1, 1), result)
+        assertArrayEquals(arrayOf(1, 1, 1, 1, 1, 1), result)
+
+        result = arrayOf(null, null, null, 0, 15, 16)
+        mergeArrays(arrayOf(17, 156, 803), result)
+        assertArrayEquals(arrayOf(0, 15, 16, 17, 156, 803), result)
+
+        result = arrayOf(null, null, null, null, 0, 15, 16)
+        mergeArrays(arrayOf(17, 156, 803, 804), result)
+        assertArrayEquals(arrayOf(0, 15, 16, 17, 156, 803, 804), result)
 
         fun testGeneratedArrays(
             firstSize: Int,
