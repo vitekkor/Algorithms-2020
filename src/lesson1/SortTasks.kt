@@ -196,41 +196,33 @@ fun sortTemperatures(inputName: String, outputName: String) {
  * 2
  */
 fun sortSequence(inputName: String, outputName: String) {
-    // трудоёмкость: O(nlog(n))
-    // ресурсоёмкость: O(n)
+    // трудоёмкость: O(n)
+    // ресурсоёмкость: O(max - min)
     val input = File(inputName).readLines()
-    val sortedInput = input.sorted()
-    var previousElement = -1
-    var count = 1
-    var maxCount = 1
-    var minElement = Int.MAX_VALUE
-
-    for (elem in sortedInput) {
-        val element = elem.toInt()
-        if (element == previousElement) count++ else {
-            minElement = when (maxCount.compareTo(count)) {
-                0 -> min(minElement, previousElement)
-                -1 -> previousElement
-                else -> minElement
+    var max = -1
+    var min = Int.MAX_VALUE
+    var repeatedMin = Int.MAX_VALUE
+    var maxCount = 0
+    input.forEach { val intNumber = it.toInt(); max = max(max, intNumber); min = min(min, intNumber) }
+    val count = IntArray(max + 1 - min)
+    input.forEach {
+        val intNumber = it.toInt()
+        count[intNumber - min]++
+        repeatedMin = when (maxCount.compareTo(count[intNumber - min])) {
+            0 -> min(repeatedMin, intNumber)
+            -1 -> {
+                maxCount = count[intNumber - min]
+                intNumber
             }
-            maxCount = max(maxCount, count)
-            count = 1
-            previousElement = element
+            else -> repeatedMin
         }
     }
-    minElement = when (maxCount.compareTo(count)) {
-        0 -> min(minElement, previousElement)
-        -1 -> previousElement
-        else -> minElement
+    val output = mutableListOf<Int>()
+    input.forEach {
+        val intNumber = it.toInt()
+        if (intNumber != repeatedMin) output.add(intNumber)
     }
-    maxCount = max(maxCount, count)
-
-    val output = mutableListOf<String>()
-    for (number in input) {
-        if (number.toInt() != minElement) output.add(number)
-    }
-    repeat(maxCount) { output.add("$minElement") }
-
+    repeat(maxCount) { output.add(repeatedMin) }
     writeToFile(outputName, output)
 }
 
