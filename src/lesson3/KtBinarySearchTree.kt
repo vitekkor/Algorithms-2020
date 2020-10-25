@@ -80,6 +80,7 @@ class KtBinarySearchTree<T : Comparable<T>> : AbstractMutableSet<T>(), Checkable
      * Средняя
      */
     override fun remove(element: T): Boolean {
+        //val closest = find(element) ?: return false
         TODO()
     }
 

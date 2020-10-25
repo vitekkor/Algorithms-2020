@@ -2,7 +2,6 @@
 
 package lesson2
 
-import kotlin.math.max
 import kotlin.properties.Delegates
 
 /**
@@ -98,70 +97,88 @@ fun josephTask(menNumber: Int, choiceInterval: Int): Int {
  * вернуть ту из них, которая встречается раньше в строке first.
  */
 fun longestCommonSubstring(first: String, second: String): String {
-    /*class State {
+    // трудоёмкость: O(first.length + second.length)
+    // ресурсоёмкость: O(second.length)
+    class State {
         var length by Delegates.notNull<Int>()
-        var link = -1
-        var next: MutableMap<Char, Int> = mutableMapOf()
+        var link = -1 //суффиксная ссылка; -1 - фиктивное состояние. На него ведёт только корень
+        var next: MutableMap<Char, Int> = mutableMapOf() //таблица переходов
     }
 
-    val states = Array(max(first.length, second.length) * 2) { State() }
-    var sz = 0
+    if (second.isEmpty()) return ""
+    val states = Array(second.length * 2) { State() }
+    var size = 0
     var last = 0
     states[0].length = 0
     states[0].link = -1
-    sz++
+    size++
 
-    fun extendSuffixAutomation(symbol: Char) {
-        val current = sz++
+    fun extendSuffixAutomation(symbol: Char) { // функция расширяющая суффиксный автомат
+        val current = size++ //создаём новое состояние
         states[current].length = states[last].length + 1
-        var p = last
-        while (p != -1 && !states[p].next.keys.contains(symbol)) {
-            states[p].next[symbol] = current
-            p = states[p].link
+        var i = last
+        while (i != -1 && states[i].next[symbol] == null) { // если из последнего состояния нет перехода
+            states[i].next[symbol] = current // по symbol, то добавляем переход
+            i = states[i].link // и переходим по суффиксной ссылке
         }
-        if (p == -1)
+        if (i == -1) {
+            // перехода ни разу не было обнаружено -> мы дошли до фиктивного состояния,
+            // в которое мы попали по суффиксной ссылке из начального состояния (из 0).
             states[current].link = 0
-        else {
-            val q = states[p].next[symbol]!!
-            if (states[p].length + 1 == states[q].length)
-                states[current].link = q
+        } else {
+            // был обнаружен переход в состоянии номер i
+            // т.е. мы пытаемся добавить в автомат строку x + symbol
+            //которая уже была добавлена
+            val target = states[i].next[symbol]!!
+            if (states[i].length + 1 == states[target].length)
+            //требуется провести суффиксную ссылку в такое состояние,
+            //в котором длиннейшей строкой будет являться x + symbol
+            //т.е. length для этого состояния должен быть равен length(i) + 1.
+                states[current].link = target
             else {
-                val clone = sz++
-                states[clone].length = states[p].length + 1
-                states[clone].next = states[q].next
-                states[clone].link = states[q].link
-                while (p != -1 && !states[p].next.keys.contains(symbol)) {
-                    states[p].next[symbol] = clone
-                    p = states[p].link
+                //переход по ветке else означает, что состоянию target соответствует не только
+                //подстрока x+c длины len(i) + 1, но также и подстроки большей длины
+                //клонируем состояние target с увеличением длины на 1
+                val clone = size++
+                states[clone].length = states[i].length + 1
+                states[clone].next.putAll(states[target].next)
+                states[clone].link = states[target].link
+                states[target].link = clone //ссылку из target направляем в clone.
+                states[current].link = clone //проводим суффиксную ссылку из current в clone
+                //проходимся дальше по суффиксным ссылкам и если они вели в состояние target
+                while (i != -1 && states[i].next[symbol] == target) {
+                    states[i].next[symbol] = clone //то перенаправляем в состояние clone
+                    i = states[i].link
                 }
-                states[q].link = clone
-                states[current].link = clone
-
             }
         }
-        last = current
+        last = current //обновляем последнее состояние
     }
-    for (element in first) extendSuffixAutomation(element)
-    var v = 0
-    var l = 0
-    var best = 0
-    var bestpos = 0
-    for (i in second.indices) {
-        while (v != 0 && !states[v].next.containsKey(second[i])) {
-            v = states[v].link
-            l = states[v].length
+    for (element in second.withIndex()) extendSuffixAutomation(element.value) // создаём автомат по второй строке
+    var currentState = 0
+    var currentLength = 0
+    var bestLength = 0
+    var bestPosition = 0
+    for (i in first.indices) {
+        //идём по символам первой строки
+        while (currentState != 0 && states[currentState].next[first[i]] == null) {
+            //если из состояния currentState нет требуемого перехода, то переходим по суффиксной ссылке
+            //пока не дойдём до фиктивного состояния или не найдём переход
+            currentState = states[currentState].link
+            currentLength = states[currentState].length
         }
-        if (states[v].next.contains(second[i])) {
-            v = states[v].next[second[i]]!!
-            l++
+        if (states[currentState].next[first[i]] != null) {
+            //если был найден переход, то совершаем его и увеличиваем currentLength на 1
+            currentState = states[currentState].next[first[i]]!!
+            currentLength++
         }
-        if (l > best) {
-            best = l
-            bestpos = i
+        //проверяем, нашли ли мы самую длинную подстроку
+        if (currentLength > bestLength) {
+            bestLength = currentLength
+            bestPosition = i
         }
     }
-    return second.substring(bestpos - best + 1, best + 1)*/
-    TODO()
+    return first.substring(bestPosition - bestLength + 1, bestPosition + 1)
 }
 
 /**
@@ -175,6 +192,8 @@ fun longestCommonSubstring(first: String, second: String): String {
  * Единица простым числом не считается.
  */
 fun calcPrimesNumber(limit: Int): Int {
+    // трудоёмкость: O(sqrt(limit)*limit)
+    // ресурсоёмкость: O(1)
     fun isPrime(n: Int): Int {
         if (n < 2) return 0
         if (n == 2) return 1
