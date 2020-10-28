@@ -105,7 +105,7 @@ fun longestCommonSubstring(first: String, second: String): String {
         var next: MutableMap<Char, Int> = mutableMapOf() //таблица переходов
     }
 
-    if (second.isEmpty()) return ""
+    if (second.isEmpty() || first.isEmpty()) return ""
     val states = Array(second.length * 2) { State() }
     var size = 0
     var last = 0

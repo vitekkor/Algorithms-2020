@@ -134,6 +134,20 @@ abstract class AbstractAlgorithmsTests {
                 ""
             ).trim()
         )
+        assertEquals(
+            "",
+            longestCommonSubstring(
+                "",
+                "Keep it street"
+            ).trim()
+        )
+        assertEquals(
+            "",
+            longestCommonSubstring(
+                "12.5.1",
+                ""
+            ).trim()
+        )
     }
 
     fun calcPrimesNumber(calcPrimesNumber: (Int) -> Int) {
