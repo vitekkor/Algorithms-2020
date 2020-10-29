@@ -250,16 +250,96 @@ class KtBinarySearchTree<T : Comparable<T>> : AbstractMutableSet<T>(), Checkable
      * Очень сложная (в том случае, если спецификация реализуется в полном объёме)
      */
     override fun subSet(fromElement: T, toElement: T): SortedSet<T> {
-        //require(fromElement <= toElement)
-        TODO()
+        require(fromElement <= toElement)
+        return SubSet(this, fromElement, toElement)
     }
 
-    /*class SubSet<T : Comparable<T>>(private val tree: KtBinarySearchTree<T>) : TreeSet<T>() {
+    class SubSet<T : Comparable<T>>(
+        private val tree: KtBinarySearchTree<T>,
+        private val fromElement: T?,
+        private val toElement: T?
+    ) : TreeSet<T>() {
+
+
+        override val size: Int
+            get() = iterator().asSequence().count()
+
+        override fun contains(element: T): Boolean {
+            return inInterval(element) && tree.contains(element)
+        }
+
+        override fun add(element: T): Boolean {
+            require(inInterval(element))
+            return tree.add(element)
+        }
+
+        override fun remove(element: T): Boolean {
+            require(inInterval(element))
+            return tree.remove(element)
+        }
+
+        override fun comparator(): Comparator<in T>? = null
+
+        inner class SubSetIterator internal constructor() : MutableIterator<T> {
+            private val treeIterator = tree.iterator()
+
+            private var next = if (treeIterator.hasNext()) treeIterator.next() else null
+            private var current: T? = null
+
+            init {
+                while (next != null && !inInterval(next!!) && treeIterator.hasNext()) {
+                    next = treeIterator.next()
+                }
+                if (next != null && !inInterval(next!!)) next = null
+            }
+
+            override fun hasNext(): Boolean {
+                return next != null
+            }
+
+            override fun next(): T {
+                if (!hasNext()) throw NoSuchElementException()
+                current = next
+                next = if (treeIterator.hasNext()) treeIterator.next() else null
+                while (next != null && !inInterval(next!!) && treeIterator.hasNext()) {
+                    next = treeIterator.next()
+                }
+                if (next != null && !inInterval(next!!)) next = null
+                return current!!
+            }
+
+            override fun remove() {
+                check(current != null)
+                treeIterator.remove()
+            }
+
+        }
 
         override fun iterator(): MutableIterator<T> {
-            return tree.iterator()
+            return SubSetIterator()
         }
-    }*/
+
+        private fun inInterval(element: T): Boolean = when {
+            fromElement != null && toElement != null -> {
+                element >= fromElement && element < toElement
+            }
+            fromElement != null -> {
+                element >= fromElement
+            }
+            else -> {
+                element < toElement!!
+            }
+        }
+
+        override fun first(): T {
+            return iterator().asSequence().first()
+        }
+
+        override fun last(): T {
+            return iterator().asSequence().last()
+        }
+
+    }
 
     /**
      * Подмножество всех элементов строго меньше заданного
@@ -276,7 +356,7 @@ class KtBinarySearchTree<T : Comparable<T>> : AbstractMutableSet<T>(), Checkable
      * Сложная
      */
     override fun headSet(toElement: T): SortedSet<T> {
-        TODO()
+        return SubSet(this, null, toElement)
     }
 
     /**
@@ -294,7 +374,7 @@ class KtBinarySearchTree<T : Comparable<T>> : AbstractMutableSet<T>(), Checkable
      * Сложная
      */
     override fun tailSet(fromElement: T): SortedSet<T> {
-        TODO()
+        return SubSet(this, fromElement, null)
     }
 
     override fun first(): T {
