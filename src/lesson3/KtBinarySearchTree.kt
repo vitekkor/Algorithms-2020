@@ -37,7 +37,7 @@ class KtBinarySearchTree<T : Comparable<T>> : AbstractMutableSet<T>(), Checkable
         while (true) {
             val comparison = value.compareTo(child.value)
             when {
-                comparison == 0 -> return parent to child
+                comparison == 0 -> return child to parent
                 comparison < 0 -> if (child.left != null) {
                     parent = child
                     child = child.left!!
@@ -103,47 +103,53 @@ class KtBinarySearchTree<T : Comparable<T>> : AbstractMutableSet<T>(), Checkable
         // трудоёмкость: O(BST.height)
         // ресурсоёмкость: O(1)
         val closest = findWithParent(element)
-        val node = closest.second ?: return false
-        val parent = closest.first
-        when {
-            node.left == null && node.right == null -> {
-                if (parent != null) {
-                    if (parent.left === node) parent.left = null
-                    else parent.right = null
-                } else root = null
-            }
-            (node.left == null && node.right != null) || (node.left != null && node.right == null) -> {
-                val child = node.left ?: node.right!!
-                if (parent == null) {
-                    root = child
-                } else {
-                    if (parent.left === node) parent.left = child else parent.right = child
-                }
-            }
-            else -> {
-                var replacement = node.right!!
-                var replacementParent = node
-                while (replacement.left != null) {
-                    replacementParent = replacement
-                    replacement = replacement.left!!
-                }
-                if (replacement === replacementParent.right) {
-                    replacement.left = node.left
+        return remove(closest.first, closest.second)
+    }
+
+    private fun remove(nodeToRemove: Node<T>?, parent: Node<T>?): Boolean {
+        // трудоёмкость: O(1)
+        // ресурсоёмкость: O(1)
+        if (nodeToRemove == null) return false else
+            when {
+                nodeToRemove.left == null && nodeToRemove.right == null -> {
                     if (parent != null) {
-                        if (parent.left === node) parent.left = replacement else parent.right = replacement
-                    } else root = replacement
-                } else {
-                    replacementParent.left = replacement.right
-                    replacement.right = node.right
-                    replacement.left = node.left
-                    if (parent != null) {
-                        if (parent.left === node) parent.left = replacement else parent.right = replacement
-                    } else root = replacement
+                        if (parent.left === nodeToRemove) parent.left = null
+                        else parent.right = null
+                    } else root = null
+                }
+                (nodeToRemove.left == null && nodeToRemove.right != null) ||
+                        (nodeToRemove.left != null && nodeToRemove.right == null) -> {
+                    val child = nodeToRemove.left ?: nodeToRemove.right!!
+                    if (parent == null) {
+                        root = child
+                    } else {
+                        if (parent.left === nodeToRemove) parent.left = child else parent.right = child
+                    }
+                }
+                else -> {
+                    var replacement = nodeToRemove.right!!
+                    var replacementParent = nodeToRemove
+                    while (replacement.left != null) {
+                        replacementParent = replacement
+                        replacement = replacement.left!!
+                    }
+                    if (replacement === replacementParent!!.right) {
+                        replacement.left = nodeToRemove.left
+                        if (parent != null) {
+                            if (parent.left === nodeToRemove) parent.left = replacement else parent.right = replacement
+                        } else root = replacement
+                    } else {
+                        replacementParent!!.left = replacement.right
+                        replacement.right = nodeToRemove.right
+                        replacement.left = nodeToRemove.left
+                        if (parent != null) {
+                            if (parent.left === nodeToRemove) parent.left = replacement else parent.right = replacement
+                        } else root = replacement
+                    }
                 }
             }
-        }
-        node.left = null
-        node.right = null
+        nodeToRemove.left = null
+        nodeToRemove.right = null
         size--
         return true
     }
@@ -156,12 +162,16 @@ class KtBinarySearchTree<T : Comparable<T>> : AbstractMutableSet<T>(), Checkable
 
     inner class BinarySearchTreeIterator internal constructor() : MutableIterator<T> {
         private var next: Node<T>?
+        private var parent: Node<T>? = null
         private val stack: Stack<Node<T>> = Stack()
 
         init {
+            // трудоёмкость: O(BST.height)
+            // ресурсоёмкость: O(BST.height)
             next = root
             while (next != null) {
                 stack.push(next)
+                parent = next
                 next = next!!.left
             }
         }
@@ -197,9 +207,14 @@ class KtBinarySearchTree<T : Comparable<T>> : AbstractMutableSet<T>(), Checkable
          */
         override fun next(): T {
             // трудоёмкость: O(BST.height)
-            // ресурсоёмкость: O(1)
+            // ресурсоёмкость: O(1) (учёл ресурсы в блоке init)
             if (!hasNext()) throw NoSuchElementException()
             var node = stack.pop()
+            parent = when {
+                stack.isNotEmpty() -> stack.peek()
+                next?.right === node -> next
+                else -> null
+            }
             next = node
             if (node.right != null) {
                 node = node.right
@@ -224,10 +239,10 @@ class KtBinarySearchTree<T : Comparable<T>> : AbstractMutableSet<T>(), Checkable
          * Сложная
          */
         override fun remove() {
-            // трудоёмкость: O(BST.height)
+            // трудоёмкость: O(1)
             // ресурсоёмкость: O(1)
             check(next != null)
-            check(this@KtBinarySearchTree.remove(next!!.value))
+            check(this@KtBinarySearchTree.remove(next, parent))
             next = null
         }
 
@@ -254,12 +269,11 @@ class KtBinarySearchTree<T : Comparable<T>> : AbstractMutableSet<T>(), Checkable
         return SubSet(this, fromElement, toElement)
     }
 
-    class SubSet<T : Comparable<T>>(
+    private class SubSet<T : Comparable<T>>(
         private val tree: KtBinarySearchTree<T>,
         private val fromElement: T?,
         private val toElement: T?
     ) : TreeSet<T>() {
-
 
         override val size: Int
             get() = iterator().asSequence().count()

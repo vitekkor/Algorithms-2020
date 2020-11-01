@@ -4,6 +4,7 @@ package lesson2
 
 import kotlin.properties.Delegates
 
+
 /**
  * Получение наибольшей прибыли (она же -- поиск максимального подмассива)
  * Простая
@@ -192,21 +193,20 @@ fun longestCommonSubstring(first: String, second: String): String {
  * Единица простым числом не считается.
  */
 fun calcPrimesNumber(limit: Int): Int {
-    // трудоёмкость: O(sqrt(limit)*limit)
-    // ресурсоёмкость: O(1)
-    fun isPrime(n: Int): Int {
-        if (n < 2) return 0
-        if (n == 2) return 1
-        if (n % 2 == 0) return 0
-        for (m in 3..kotlin.math.sqrt(n.toDouble()).toInt() step 2) {
-            if (n % m == 0) return 0
+    // трудоёмкость: O(limit*log(log(limit)))
+    // ресурсоёмкость: O(limit + 1)
+    if (limit <= 1) return 0
+    val primes = BooleanArray(limit + 1) { true }
+    primes[0] = false
+    primes[1] = false
+    for (i in 2 until primes.size) {
+        if (primes[i]) {
+            var j = 2
+            while (i * j < primes.size) {
+                primes[i * j] = false
+                ++j
+            }
         }
-        return 1
     }
-
-    var count = 0
-    for (i in 1..limit) {
-        count += isPrime(i)
-    }
-    return count
+    return primes.count { it }
 }

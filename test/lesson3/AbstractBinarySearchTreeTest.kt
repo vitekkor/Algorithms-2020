@@ -40,6 +40,11 @@ abstract class AbstractBinarySearchTreeTest {
             }
             val binarySet = create()
             for (element in controlSet) {
+                val size = binarySet.size
+                assertFalse(
+                    element in binarySet,
+                    "The tree contains an element that was presumably not added."
+                )
                 assertTrue(
                     binarySet.add(element),
                     "An element was supposedly not added to the tree when it should have been."
@@ -56,6 +61,7 @@ abstract class AbstractBinarySearchTreeTest {
                     binarySet.add(element),
                     "An element was supposedly added to the tree twice."
                 )
+                assertEquals(size + 1, binarySet.size, "The size of the tree is incorrect.")
             }
             assertEquals(
                 controlSet.size, binarySet.size,
@@ -104,6 +110,11 @@ abstract class AbstractBinarySearchTreeTest {
             )
             println("First element: $actualFirst. Last element: $actualLast.")
         }
+        val binarySet = create()
+        binarySet.add(5)
+        assertEquals(5, binarySet.first())
+        assertEquals(5, binarySet.last())
+        assertEquals(binarySet.last(), binarySet.first())
     }
 
     protected fun doRemoveTest() {
@@ -162,6 +173,8 @@ abstract class AbstractBinarySearchTreeTest {
             }
             println("All clear!")
         }
+        val binarySet = create()
+        assertFalse(binarySet.remove(5))
     }
 
     protected fun doIteratorTest() {
@@ -179,6 +192,9 @@ abstract class AbstractBinarySearchTreeTest {
                 binarySet.iterator().hasNext(),
                 "Iterator of an empty tree should not have any next elements."
             )
+            assertFailsWith<NoSuchElementException>("Something was returned, but the tree is empty") {
+                binarySet.iterator().next()
+            }
             for (element in controlSet) {
                 binarySet += element
             }
@@ -234,6 +250,7 @@ abstract class AbstractBinarySearchTreeTest {
                 iterator.remove()
             }
             var counter = binarySet.size
+            val expectedSize = binarySet.size - 1
             print("Iterating: ")
             while (iterator.hasNext()) {
                 val element = iterator.next()
@@ -258,6 +275,10 @@ abstract class AbstractBinarySearchTreeTest {
                 controlSet.size, binarySet.size,
                 "The size of the tree is incorrect: was ${binarySet.size}, should've been ${controlSet.size}."
             )
+            assertEquals(
+                expectedSize, binarySet.size,
+                "The size of the tree is incorrect."
+            )
             for (element in controlSet) {
                 assertTrue(
                     binarySet.contains(element),
@@ -280,6 +301,11 @@ abstract class AbstractBinarySearchTreeTest {
             0, create().subSet(0, 0).size,
             "The subset with the same lower and upper bounds is not empty."
         )
+        val binarySet = create()
+        for (i in 0..100) {
+            assertEquals(i, binarySet.subSet(0, i).size)
+            binarySet.add(i)
+        }
         val random = Random()
         for (iteration in 1..100) {
             val controlSet = mutableSetOf<Int>()
@@ -337,10 +363,12 @@ abstract class AbstractBinarySearchTreeTest {
             for (i in 1..50) {
                 val value = random.nextInt(100)
                 if (value in fromElement until toElement) {
+                    val expectedSize = subSet.size + 1
                     if (random.nextBoolean()) {
                         if (initialSet.add(value)) {
                             allElementCounter++
                             validElementCounter++
+                            assertEquals(expectedSize, subSet.size)
                         }
                         assertTrue(
                             subSet.contains(value),
@@ -350,6 +378,7 @@ abstract class AbstractBinarySearchTreeTest {
                         if (subSet.add(value)) {
                             allElementCounter++
                             validElementCounter++
+                            assertEquals(expectedSize, subSet.size)
                         }
                         assertTrue(
                             initialSet.contains(value),
@@ -395,6 +424,10 @@ abstract class AbstractBinarySearchTreeTest {
         assertFailsWith<NoSuchElementException>("A last element was found in an empty subset.") {
             edgeCaseSet.subSet(-1, 1).last()
         }
+        assertEquals(42, edgeCaseSet.subSet(42, 43).first())
+        assertEquals(42, edgeCaseSet.subSet(42, 43).last())
+        assertEquals(42, edgeCaseSet.subSet(0, 100).first())
+        assertEquals(42, edgeCaseSet.subSet(0, 100).last())
         val random = Random()
         for (iteration in 1..100) {
             val controlSet = sortedSetOf<Int>()
@@ -444,6 +477,13 @@ abstract class AbstractBinarySearchTreeTest {
 
     protected fun doHeadSetTest() {
         implementationTest { create().headSet(0) }
+        val binarySet = create()
+        assertEquals(0, binarySet.headSet(100).size)
+        binarySet.add(0)
+        for (i in 2..100) {
+            assertEquals(i - 1, binarySet.headSet(i).size)
+            binarySet.add(i)
+        }
         val random = Random()
         for (iteration in 1..100) {
             val controlSet = mutableSetOf<Int>()
@@ -464,10 +504,12 @@ abstract class AbstractBinarySearchTreeTest {
                     "$element is ${if (element in headSet) "" else "not"} in the headset when it should ${if (element in headSet) "not" else ""} be."
                 )
                 if (element < toElement) {
+                    val expectedSize = headSet.size - 1
                     assertTrue(
                         headSet.remove(element),
                         "An element of the headset was not removed."
                     )
+                    assertEquals(expectedSize, headSet.size)
                 } else {
                     assertFailsWith<IllegalArgumentException>("An illegal argument was passed to remove() without raising an exception") {
                         headSet.remove(element)
@@ -481,6 +523,9 @@ abstract class AbstractBinarySearchTreeTest {
             val invalidAddition = toElement + 1
             assertFailsWith<IllegalArgumentException>("An illegal argument was passed to add() without raising an exception") {
                 headSet.add(invalidAddition)
+            }
+            assertFailsWith<IllegalArgumentException>("An illegal argument was passed to add() without raising an exception") {
+                headSet.add(toElement)
             }
             println("All clear!")
         }
@@ -498,11 +543,13 @@ abstract class AbstractBinarySearchTreeTest {
             var validElementCounter = 0
             for (i in 1..50) {
                 val value = random.nextInt(100)
+                val expectedSize = headSet.size + 1
                 if (value < toElement) {
                     if (random.nextBoolean()) {
                         if (initialSet.add(value)) {
                             allElementCounter++
                             validElementCounter++
+                            assertEquals(expectedSize, headSet.size)
                         }
                         assertTrue(
                             headSet.contains(value),
@@ -512,6 +559,7 @@ abstract class AbstractBinarySearchTreeTest {
                         if (headSet.add(value)) {
                             allElementCounter++
                             validElementCounter++
+                            assertEquals(expectedSize, headSet.size)
                         }
                         assertTrue(
                             initialSet.contains(value),
@@ -542,6 +590,14 @@ abstract class AbstractBinarySearchTreeTest {
 
     protected fun doTailSetTest() {
         implementationTest { create().tailSet(0) }
+        val binarySet = create()
+        binarySet.add(0)
+        assertEquals(1, binarySet.tailSet(0).size)
+        binarySet.remove(0)
+        for (i in 0..100) {
+            assertEquals(0, binarySet.tailSet(i).size)
+            binarySet.add(i)
+        }
         val random = Random()
         for (iteration in 1..100) {
             val controlSet = mutableSetOf<Int>()
@@ -576,6 +632,9 @@ abstract class AbstractBinarySearchTreeTest {
             assertDoesNotThrow("An exception is thrown on the attempt of adding a valid element") {
                 tailSet.add(validAddition)
             }
+            assertDoesNotThrow("An exception is thrown on the attempt of adding a valid element") {
+                tailSet.add(fromElement)
+            }
             val invalidAddition = fromElement - 1
             assertFailsWith<IllegalArgumentException>("An illegal argument was passed to add() without raising an exception") {
                 tailSet.add(invalidAddition)
@@ -597,8 +656,10 @@ abstract class AbstractBinarySearchTreeTest {
             for (i in 1..50) {
                 val value = random.nextInt(100)
                 if (value >= fromElement) {
+                    val expectedSize = tailSet.size + 1
                     if (random.nextBoolean()) {
                         if (initialSet.add(value)) {
+                            assertEquals(expectedSize, tailSet.size)
                             allElementCounter++
                             validElementCounter++
                         }
@@ -608,6 +669,7 @@ abstract class AbstractBinarySearchTreeTest {
                         )
                     } else {
                         if (tailSet.add(value)) {
+                            assertEquals(expectedSize, tailSet.size)
                             allElementCounter++
                             validElementCounter++
                         }
