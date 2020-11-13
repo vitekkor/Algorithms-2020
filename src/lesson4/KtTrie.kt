@@ -1,5 +1,8 @@
 package lesson4
 
+import java.util.*
+import kotlin.NoSuchElementException
+
 /**
  * Префиксное дерево для строк
  */
@@ -7,6 +10,7 @@ class KtTrie : AbstractMutableSet<String>(), MutableSet<String> {
 
     private class Node {
         val children: MutableMap<Char, Node> = linkedMapOf()
+        var parent: Node? = null
     }
 
     private var root = Node()
@@ -42,6 +46,7 @@ class KtTrie : AbstractMutableSet<String>(), MutableSet<String> {
             } else {
                 modified = true
                 val newChild = Node()
+                newChild.parent = current
                 current.children[char] = newChild
                 current = newChild
             }
@@ -69,7 +74,75 @@ class KtTrie : AbstractMutableSet<String>(), MutableSet<String> {
      * Сложная
      */
     override fun iterator(): MutableIterator<String> {
-        TODO()
+        return TrieIterator()
+    }
+
+    inner class TrieIterator internal constructor() : MutableIterator<String> {
+        private var next: String?
+        private var current: String? = null
+        private val buffer = StringBuilder()
+        private val deque: Deque<Iterator<Map.Entry<Char, Node>>> = ArrayDeque()
+        private lateinit var nextParent: MutableMap<Char, Node>
+        private lateinit var currentParent: MutableMap<Char, Node>
+
+        init {
+            // трудоёмкость: O(length of first word in trie (1 if it is empty string)) - is average
+            // O(length of all words (if words were added and then all of them were removed)) - is worst
+            // ресурсоёмкость: O(1)
+            deque.push(root.children.entries.iterator())
+            next = findNext()
+        }
+
+        private fun findNext(): String? {
+            // трудоёмкость: O(length of first word in trie (1 if it is empty string)) - is average
+            // O(length of all words (if words were added and then all of them were removed)) - is worst
+            // ресурсоёмкость: O(length of the longest word)
+            var iterator: Iterator<Map.Entry<Char, Node>>? = deque.peek()
+            while (iterator != null) {
+                while (iterator!!.hasNext()) {
+                    val entry = iterator.next()
+                    val key = entry.key
+                    val value = entry.value
+                    if (key == 0.toChar()) {
+                        nextParent = (value.parent ?: root).children
+                        return buffer.toString()
+                    }
+                    buffer.append(key)
+                    iterator = value.children.entries.iterator()
+                    deque.push(iterator)
+                }
+                deque.pop()
+                if (buffer.isNotEmpty()) buffer.deleteCharAt(buffer.length - 1)
+                iterator = deque.peek()
+            }
+            return null
+        }
+
+        override fun hasNext(): Boolean {
+            // трудоёмкость: O(1)
+            // ресурсоёмкость: O(1)
+            return next != null
+        }
+
+        override fun next(): String {
+            // ресурсоёмкость: O(1)
+            // трудоёмксость: similar to findNext()
+            if (!hasNext()) throw NoSuchElementException()
+            current = next!!
+            currentParent = nextParent
+            next = findNext()
+            return current!!
+        }
+
+        override fun remove() {
+            // ресурсоёмкость: O(1)
+            // трудоёмксость: similar to findNext()
+            check(current != null)
+            check(currentParent.remove(0.toChar()) != null)
+            current = null
+            size--
+        }
+
     }
 
 }
