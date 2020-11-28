@@ -10,7 +10,6 @@ class KtTrie : AbstractMutableSet<String>(), MutableSet<String> {
 
     private class Node {
         val children: MutableMap<Char, Node> = linkedMapOf()
-        var parent: Node? = null
     }
 
     private var root = Node()
@@ -46,7 +45,6 @@ class KtTrie : AbstractMutableSet<String>(), MutableSet<String> {
             } else {
                 modified = true
                 val newChild = Node()
-                newChild.parent = current
                 current.children[char] = newChild
                 current = newChild
             }
@@ -78,19 +76,16 @@ class KtTrie : AbstractMutableSet<String>(), MutableSet<String> {
     }
 
     inner class TrieIterator internal constructor() : MutableIterator<String> {
-        private var next: String?
-        private var current: String? = null
+        private var next: String? = null
         private val buffer = StringBuilder()
         private val deque: Deque<Iterator<Map.Entry<Char, Node>>> = ArrayDeque()
-        private lateinit var nextParent: MutableMap<Char, Node>
-        private lateinit var currentParent: MutableMap<Char, Node>
+        private var needNext = true
 
         init {
             // трудоёмкость: O(length of first word in trie (1 if it is empty string)) - is average
             // O(length of all words (if words were added and then all of them were removed)) - is worst
             // ресурсоёмкость: O(1)
             deque.push(root.children.entries.iterator())
-            next = findNext()
         }
 
         private fun findNext(): String? {
@@ -103,10 +98,8 @@ class KtTrie : AbstractMutableSet<String>(), MutableSet<String> {
                     val entry = iterator.next()
                     val key = entry.key
                     val value = entry.value
-                    if (key == 0.toChar()) {
-                        nextParent = (value.parent ?: root).children
+                    if (key == 0.toChar())
                         return buffer.toString()
-                    }
                     buffer.append(key)
                     iterator = value.children.entries.iterator()
                     deque.push(iterator)
@@ -119,27 +112,29 @@ class KtTrie : AbstractMutableSet<String>(), MutableSet<String> {
         }
 
         override fun hasNext(): Boolean {
-            // трудоёмкость: O(1)
+            // трудоёмкость: similar to findNext()
             // ресурсоёмкость: O(1)
+            if (needNext) {
+                needNext = false
+                next = findNext()
+            }
             return next != null
         }
 
         override fun next(): String {
-            // ресурсоёмкость: O(1)
             // трудоёмксость: similar to findNext()
+            // ресурсоёмкость: O(1)
             if (!hasNext()) throw NoSuchElementException()
-            current = next!!
-            currentParent = nextParent
-            next = findNext()
-            return current!!
+            needNext = true
+            return next!!
         }
 
         override fun remove() {
             // ресурсоёмкость: O(1)
-            // трудоёмксость: similar to findNext()
-            check(current != null)
-            check(currentParent.remove(0.toChar()) != null)
-            current = null
+            // трудоёмксость: O(1)
+            check(next != null)
+            (deque.peek() as MutableIterator).remove()
+            next = null
             size--
         }
 

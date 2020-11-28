@@ -1,10 +1,12 @@
 package lesson4
 
-import java.util.*
-import kotlin.math.abs
 import ru.spbstu.kotlin.generate.util.nextString
+import java.util.*
 import kotlin.NoSuchElementException
-import kotlin.test.*
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 abstract class AbstractTrieTest {
 
@@ -72,19 +74,21 @@ abstract class AbstractTrieTest {
         implementationTest { create().iterator().hasNext() }
         implementationTest { create().iterator().next() }
         val random = Random()
-        val trieSet = create()
-        val controlSet = mutableSetOf<String>()
-        trieSet.add("0")
-        trieSet.add("00")
-        controlSet.add("0")
-        controlSet.add("00")
-        var iterator = trieSet.iterator()
+        val trieSet1 = create()
+        val controlSet1 = mutableSetOf<String>()
+        trieSet1.add("0")
+        trieSet1.add("00")
+        controlSet1.add("0")
+        controlSet1.add("00")
+        var iterator = trieSet1.iterator()
         while (iterator.hasNext()) {
-            assertTrue(controlSet.contains(iterator.next()))
+            val element = iterator.next()
+            assertTrue(controlSet1.contains(element), "Element $element was not found in controlSet")
         }
-        iterator = controlSet.iterator()
+        iterator = controlSet1.iterator()
         while (iterator.hasNext()) {
-            assertTrue(trieSet.contains(iterator.next()))
+            val element = iterator.next()
+            assertTrue(trieSet1.contains(element), "Element $element was not found in trieSet")
         }
         for (iteration in 1..100) {
             val controlSet = mutableSetOf<String>()
@@ -128,35 +132,19 @@ abstract class AbstractTrieTest {
 
     protected fun doIteratorRemoveTest() {
         implementationTest { create().iterator().remove() }
-        val controlSet = mutableSetOf(
-            "ddcacghhf",
-            "df",
-            "f",
-            "eagbdfachdbg",
-            "fddcahggbaa",
-            "a",
-            "eaf",
-            "deehhccbcee",
-            "hfgefgecfff",
-            "ggaha",
-            "bheche",
-            "hbfadhc",
-            "h",
-            "haggghdg"
-        )
-        controlSet.add("e")
-        val trieSet = create()
-        for (element in controlSet) {
-            trieSet.add(element)
-        }
-        val iterator = trieSet.iterator()
-        while (iterator.hasNext()) {
-            val element = iterator.next()
-            if (element == "e") {
-                iterator.remove()
-            }
-        }
         val random = Random()
+        val trieSet1 = create()
+        for (i in 1..15) {
+            val string = random.nextString("abcdefgh", 1, 15)
+            trieSet1.add(string)
+        }
+        val iterator1 = trieSet1.iterator()
+        while (iterator1.hasNext()) {
+            iterator1.next()
+            iterator1.remove()
+        }
+        assertFailsWith<NoSuchElementException> { iterator1.next() }
+        assertFailsWith<IllegalStateException> { iterator1.remove() }
         for (iteration in 1..100) {
             val controlSet = mutableSetOf<String>()
             val removeIndex = random.nextInt(15) + 1
@@ -191,20 +179,20 @@ abstract class AbstractTrieTest {
                     }
                 }
             }
-            /*assertEquals(
+            assertEquals(
                 0, counter,
-                "TrieIterator.remove() changed iterator position: ${abs(counter)} elements were ${if (counter > 0) "skipped" else "revisited"}."
-            )*/
+                "TrieIterator.remove() changed iterator position: ${kotlin.math.abs(counter)} elements were " +
+                        "${if (counter > 0) "skipped" else "revisited"}."
+            )
             assertEquals(
                 controlSet.size, trieSet.size,
                 "The size of the set is incorrect: was ${trieSet.size}, should've been ${controlSet.size}."
             )
             for (element in controlSet) {
-                if (!trieSet.contains(element))
-                    assertTrue(
-                        trieSet.contains(element),
-                        "Trie set doesn't have the element $element from the control set."
-                    )
+                assertTrue(
+                    trieSet.contains(element),
+                    "Trie set doesn't have the element $element from the control set."
+                )
             }
             for (element in trieSet) {
                 assertTrue(
