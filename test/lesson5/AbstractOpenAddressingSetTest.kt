@@ -2,6 +2,7 @@ package lesson5
 
 import ru.spbstu.kotlin.generate.util.nextString
 import java.util.*
+import kotlin.NoSuchElementException
 import kotlin.math.abs
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -95,6 +96,12 @@ abstract class AbstractOpenAddressingSetTest {
             for (element in controlSet) {
                 openAddressingSet += element
             }
+            for (element in controlSet) {
+                assertTrue { openAddressingSet.contains(element) }
+            }
+            for (element in openAddressingSet) {
+                assertTrue { controlSet.contains(element) }
+            }
             val iterator1 = openAddressingSet.iterator()
             val iterator2 = openAddressingSet.iterator()
             println("Checking if calling hasNext() changes the state of the iterator...")
@@ -113,7 +120,7 @@ abstract class AbstractOpenAddressingSetTest {
                 controlSet.isEmpty(),
                 "OpenAddressingSetIterator doesn't traverse the entire set."
             )
-            assertFailsWith<IllegalStateException>("Something was supposedly returned after the elements ended") {
+            assertFailsWith<NoSuchElementException>("Something was supposedly returned after the elements ended") {
                 openAddressingSetIter.next()
             }
             println("All clear!")
@@ -146,16 +153,27 @@ abstract class AbstractOpenAddressingSetTest {
                 iterator.remove()
             }
             var counter = openAddressingSet.size
+            val expectedSize = openAddressingSet.size - 1
             while (iterator.hasNext()) {
                 val element = iterator.next()
                 counter--
                 if (element == toRemove) {
                     iterator.remove()
+                    assertFalse { openAddressingSet.contains(element) }
+                    assertFailsWith<IllegalStateException>("Something was supposedly deleted after previous deleting") {
+                        iterator.remove()
+                    }
+                } else {
+                    assertTrue { controlSet.contains(element) }
                 }
             }
             assertEquals(
                 0, counter,
                 "OpenAddressingSetIterator.remove() changed iterator position: ${abs(counter)} elements were ${if (counter > 0) "skipped" else "revisited"}."
+            )
+            assertEquals(
+                expectedSize, openAddressingSet.size,
+                "The size of the set is incorrect: was ${openAddressingSet.size}, should've been ${expectedSize}."
             )
             assertEquals(
                 controlSet.size, openAddressingSet.size,

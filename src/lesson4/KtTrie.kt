@@ -122,7 +122,7 @@ class KtTrie : AbstractMutableSet<String>(), MutableSet<String> {
         }
 
         override fun next(): String {
-            // трудоёмксость: similar to findNext()
+            // трудоёмксость: similar to hasNext()
             // ресурсоёмкость: O(1)
             if (!hasNext()) throw NoSuchElementException()
             needNext = true

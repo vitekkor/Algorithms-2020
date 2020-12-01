@@ -1,5 +1,7 @@
 package lesson5
 
+import kotlin.properties.Delegates
+
 /**
  * Множество(таблица) с открытой адресацией на 2^bits элементов без возможности роста.
  */
@@ -25,16 +27,19 @@ class KtOpenAddressingSet<T : Any>(private val bits: Int) : AbstractMutableSet<T
      * Проверка, входит ли данный элемент в таблицу
      */
     override fun contains(element: T): Boolean {
+        return find(element) != null
+    }
+
+    private fun find(element: T): Int? {
         var index = element.startingIndex()
+        val startingIndex = index
         var current = storage[index]
-        while (current != null) {
-            if (current == element) {
-                return true
-            }
+        while (current != element) {
             index = (index + 1) % capacity
+            if (index == startingIndex) return null
             current = storage[index]
         }
-        return false
+        return index
     }
 
     /**
@@ -67,7 +72,7 @@ class KtOpenAddressingSet<T : Any>(private val bits: Int) : AbstractMutableSet<T
     /**
      * Удаление элемента из таблицы
      *
-     * Если элемент есть в таблица, функция удаляет его из дерева и возвращает true.
+     * Если элемент есть в таблице, функция удаляет его из дерева и возвращает true.
      * В ином случае функция оставляет множество нетронутым и возвращает false.
      * Высота дерева не должна увеличиться в результате удаления.
      *
@@ -76,7 +81,10 @@ class KtOpenAddressingSet<T : Any>(private val bits: Int) : AbstractMutableSet<T
      * Средняя
      */
     override fun remove(element: T): Boolean {
-        TODO("not implemented")
+        val elementIndex = find(element) ?: return false
+        storage[elementIndex] = null
+        size--
+        return true
     }
 
     /**
@@ -90,6 +98,45 @@ class KtOpenAddressingSet<T : Any>(private val bits: Int) : AbstractMutableSet<T
      * Средняя (сложная, если поддержан и remove тоже)
      */
     override fun iterator(): MutableIterator<T> {
-        TODO("not implemented")
+        return KtOpenAddressingSetIterator()
+    }
+
+    inner class KtOpenAddressingSetIterator<T> : MutableIterator<T> {
+        private var index = 0
+        private var nextIndex by Delegates.notNull<Int>()
+        private var removable = false
+        private var launched = false
+
+        override fun hasNext(): Boolean {
+            // трудоёмкость: O(capacity) is worst
+            // ресурсоёмкость: O(1)
+            if (launched && index == 0) return false
+            while (storage[index] == null) {
+                index = (index + 1) % capacity
+                launched = true
+                if (index == 0) return false
+            }
+            return true
+        }
+
+        override fun next(): T {
+            // трудоёмкость: O(1) (if hasNext() was already called)
+            // or similar to hasNext() (if hasNext() has not been called yet)
+            // ресурсоёмкость: O(1)
+            if (!hasNext()) throw NoSuchElementException()
+            nextIndex = index
+            index = (index + 1) % capacity
+            removable = true
+            return storage[nextIndex] as T
+        }
+
+        override fun remove() {
+            // трудоёмкость: O(1)
+            // ресурсоёмкость: O(1)
+            check(removable)
+            removable = false
+            storage[nextIndex] = null
+            size--
+        }
     }
 }
