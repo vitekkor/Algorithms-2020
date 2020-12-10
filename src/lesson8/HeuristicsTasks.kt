@@ -42,8 +42,10 @@ fun Graph.findVoyagingPathHeuristics(
     startingPheromone: Double = 1.0,
     alpha: Double = -2.0,
     beta: Double = 1.0,
-    ro: Double = 0.7
+    ro: Double = 0.3
 ): Path {
+    // трудоёмкость: O(iterationsNumber * countOfAnts * Graph.vertices.size)
+    // ресурсоёмкость: O(countOfAnts * (Graph.edges.size + Graph.vertices.size))
     val graph = this
 
     data class Ant(
@@ -61,22 +63,27 @@ fun Graph.findVoyagingPathHeuristics(
         private fun getProbability(i: Graph.Vertex, j: Graph.Vertex): Double {
             var sum = 0.0
             val currentEdge = graph.getConnection(i, j) ?: return 0.0
+            // вычисляем уровень феромона для данного ребра
             var currentT = edgePheromone.getValue(currentEdge).pow(alpha)
+            // вычисляем эвристическое расстояние для данного ребра
             var currentN = (1.0 / currentEdge.weight).pow(beta)
-            val currentCoeff = currentT * currentN
-            sum += currentCoeff
+            // коэффициент для текущего ребра
+            val currentEdgeCoefficient = currentT * currentN
+            sum += currentEdgeCoefficient
+            // суммируем коэффициенты для ребер, соединяющих соседние вершины с ребром i
             for (neighbourVertex in graph.getNeighbors(i)) {
-                if (neighbourVertex !in visitedVertices) {
-                    val edge = graph.getConnection(i, neighbourVertex) ?: continue
+                if (neighbourVertex !in visitedVertices) { // те, которые уже посетили не учитываем
+                    val edge = graph.getConnection(i, neighbourVertex)!!
                     currentT = edgePheromone.getValue(edge).pow(alpha)
                     currentN = (1.0 / edge.weight).pow(beta)
                     sum += currentN * currentT
                 }
             }
-            return currentCoeff / sum
+            return currentEdgeCoefficient / sum
         }
 
         fun getPath(): Path? {
+            // воссоздаем путь муравья
             var path = Path(visitedVertices.first())
             for (vertex in visitedVertices.drop(1)) {
                 if (graph.getConnection(path.vertices.last(), vertex) == null) return null
@@ -88,6 +95,8 @@ fun Graph.findVoyagingPathHeuristics(
         }
 
         fun updatePheromone() {
+            // добавляем феромон
+            // чем длиннее был путь - тем меньше феромона добавляем
             val deltaT = 1.0 / visitedEdges.sumBy { it.weight }
             for (edge in visitedEdges) {
                 edgePheromone[edge] = edgePheromone.getValue(edge) + deltaT
@@ -95,6 +104,7 @@ fun Graph.findVoyagingPathHeuristics(
         }
 
         fun giveNewLife() {
+            // возрождаем муравья, стирая ему память о посещенных вершинах и ребрах
             alive = true
             visitedEdges.clear()
             visitedVertices.clear()
@@ -105,14 +115,14 @@ fun Graph.findVoyagingPathHeuristics(
     var bestPath: Path? = null
     val startingVertex = vertices.first()
     val pheromone = mutableMapOf<Graph.Edge, Double>()
-    edges.forEach { pheromone[it] = startingPheromone }
-    val ants = List(countOfAnts) { Ant(pheromone) }
+    edges.forEach { pheromone[it] = startingPheromone } // задаём начальный уровень феромона
+    val ants = List(countOfAnts) { Ant(pheromone) } // создаем колонию муравьёв
     for (i in 1..iterationsNumber) {
         for (ant in ants) {
             var currentVertex = startingVertex
             while (ant.visitedVertices.size != vertices.size - 1) {
                 val next = ant.getNextVertex(currentVertex)
-                if (next == null) {
+                if (next == null) { // если муравью некуда идти, то убиваем его
                     ant.alive = false
                     break
                 }
@@ -120,17 +130,19 @@ fun Graph.findVoyagingPathHeuristics(
                 currentVertex = next
             }
             ant.visitedVertices.add(currentVertex)
-            val finalEdge = this.getConnection(startingVertex, currentVertex)
-            if (finalEdge == null)
-                ant.alive = false
-            else
-                ant.visitedEdges.add(finalEdge)
+            val finalEdge = this.getConnection(currentVertex, startingVertex)
+            if (finalEdge == null) ant.alive = false // если нет ребра из последней вершины в начальную,
+            // то убиваем муравья
+            else ant.visitedEdges.add(finalEdge)
         }
+        // выбираем наилучший путь
         val minPath = ants.minByOrNull { it.getPath()?.length ?: Int.MAX_VALUE }?.getPath()
         if (bestPath == null || minPath?.length ?: Int.MAX_VALUE < bestPath.length) {
             bestPath = minPath
         }
-        pheromone.mapValues { it.value * ro }
+        // испарение феромона
+        pheromone.mapValues { it.value * (1.0 - ro) }
+        // добавляем феромоны только выживших муравьев. Оживляем мертвых и стираем память всем
         ants.forEach { if (it.alive) it.updatePheromone(); it.giveNewLife() }
     }
     println(bestPath)
