@@ -46,42 +46,7 @@ private fun <E> writeToFile(fileName: String, data: List<E>) {
 }
 
 fun sortTimes(inputName: String, outputName: String) {
-    // трудоёмкость: O(nlog(n))
-    // ресурсоёмкость: O(n)
-    class Time(momentOfTime: String) : Comparable<Time> {
-        private val hours: Int
-        private val minutes: Int
-        private val seconds: Int
-        private val totalTime: Int
-        private val stringRepresentation: String
-
-        init {
-            check(momentOfTime.matches(Regex("""[01]\d:[0-5]\d:[0-5]\d [AP]M""")))
-            val times = momentOfTime.split(" ")
-            val partsOfTimes = times[0].split(":")
-            check(partsOfTimes[0].toInt() in 0..12)
-            hours =
-                partsOfTimes[0].toInt() +
-                        if (times[1] == "AM" && partsOfTimes[0] == "12") -12 else
-                            if (times[1] == "PM" && partsOfTimes[0] != "12") 12 else 0
-            minutes = partsOfTimes[1].toInt()
-            seconds = partsOfTimes[2].toInt()
-            totalTime = hours * 3600 + minutes * 60 + seconds
-            stringRepresentation = momentOfTime
-        }
-
-        override fun compareTo(other: Time): Int {
-            return this.totalTime.compareTo(other.totalTime)
-        }
-
-        override fun toString(): String {
-            return stringRepresentation
-        }
-
-    }
-
-    val inputTimes = File(inputName).readLines().map { Time(it) }.sorted()
-    writeToFile(outputName, inputTimes)
+    TODO()
 }
 
 /**
