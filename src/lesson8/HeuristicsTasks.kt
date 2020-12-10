@@ -131,7 +131,7 @@ fun Graph.findVoyagingPathHeuristics(
             }
             ant.visitedVertices.add(currentVertex)
             val finalEdge = this.getConnection(currentVertex, startingVertex)
-            if (finalEdge == null) ant.alive = false // если нет ребра из последней вершины в начальную,
+            if (finalEdge == null) ant.alive = false // если нет ребра из последней посещённой вершины в начальную,
             // то убиваем муравья
             else ant.visitedEdges.add(finalEdge)
         }
