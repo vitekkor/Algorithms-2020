@@ -32,7 +32,7 @@ abstract class AbstractHeuristicsTests {
     }
 
     fun findVoyagingPathHeuristics(findVoyagingPathHeuristics: Graph.() -> Path) {
-        val graph = GraphBuilder().apply {
+        var graph = GraphBuilder().apply {
             val a = addVertex("A")
             val b = addVertex("B")
             val c = addVertex("C")
@@ -49,12 +49,49 @@ abstract class AbstractHeuristicsTests {
             addConnection(b, d, 10)
             addConnection(c, e, 5)
         }.build()
-        val path = graph.findVoyagingPathHeuristics()
+        var path = graph.findVoyagingPathHeuristics()
         assertEquals(105, path.length)
-        val vertices = path.vertices
+        var vertices = path.vertices
         assertEquals(vertices.first(), vertices.last(), "Voyaging path $vertices must be loop!")
-        val withoutLast = vertices.dropLast(1)
-        val expected = listOf(graph["A"], graph["D"], graph["B"], graph["C"], graph["E"], graph["F"])
+        var withoutLast = vertices.dropLast(1)
+        var expected = listOf(graph["A"], graph["D"], graph["B"], graph["C"], graph["E"], graph["F"])
+        assertEquals(expected.size, withoutLast.size, "Voyaging path $vertices must travel through all vertices!")
+        expected.forEach {
+            assertTrue(it in vertices, "Voyaging path $vertices must travel through all vertices!")
+        }
+
+        graph = GraphBuilder().apply {
+            val a = addVertex("A")
+            val b = addVertex("B")
+            val c = addVertex("C")
+            val d = addVertex("D")
+            val e = addVertex("E")
+            val f = addVertex("F")
+            addConnection(a, b, 27)
+            addConnection(b, a, 21)
+            addConnection(b, c, 15)
+            addConnection(c, b, 15)
+            addConnection(c, d, 12)
+            addConnection(d, c, 9)
+            addConnection(d, f, 18)
+            addConnection(f, d, 27)
+            addConnection(f, a, 21)
+            addConnection(a, f, 15)
+            addConnection(f, e, 18)
+            addConnection(a, e, 18)
+            addConnection(e, a, 27)
+            addConnection(b, e, 21)
+            addConnection(e, b, 15)
+            addConnection(e, c, 15)
+            addConnection(d, e, 12)
+            addConnection(e, d, 9)
+        }.build()
+        path = graph.findVoyagingPathHeuristics()
+        assertEquals(87, path.length)
+        vertices = path.vertices
+        assertEquals(vertices.first(), vertices.last(), "Voyaging path $vertices must be loop!")
+        withoutLast = vertices.dropLast(1)
+        expected = listOf(graph["A"], graph["F"], graph["E"], graph["D"], graph["C"], graph["B"])
         assertEquals(expected.size, withoutLast.size, "Voyaging path $vertices must travel through all vertices!")
         expected.forEach {
             assertTrue(it in vertices, "Voyaging path $vertices must travel through all vertices!")
